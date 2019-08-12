@@ -25,6 +25,7 @@ public class ImageHandler implements RequestHandler<S3Event, LambdaResponse<List
 	private Context context;
     private final AmazonRekognition rekognitionClient = AmazonRekognitionClientBuilder.standard()
     		.withRegion("us-west-2").build();
+    final AmazonSNS sns = AmazonSNSClient.builder().build();
     
     @Override
     public LambdaResponse<List<String>> handleRequest(S3Event event, Context cntxt) {
@@ -61,14 +62,13 @@ public class ImageHandler implements RequestHandler<S3Event, LambdaResponse<List
         else
         	response = new LambdaResponse<List<String>>("404", "Image not recognized.");
         
-        publishSNS(response);
+        publishSNS(results);
         return response;
     }
     
-    private void publishSNS(LambdaResponse<List<String>> response) {
-    	final AmazonSNS sns = AmazonSNSClient.builder().build();
+    private void publishSNS(List<String> labels) {   	
     	String arn = "arn:aws:sns:us-west-2:489967615225:image-rekognition";
-    	String msg = new Gson().toJson(response);
+    	String msg = new Gson().toJson(labels);
     	sns.publish(new PublishRequest(arn, msg));
     	context.getLogger().log(msg);
     }
